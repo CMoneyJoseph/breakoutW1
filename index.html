@@ -68,14 +68,14 @@ canvas{width:100%;height:340px}
 
 <section>
 <h2>目前持股（<span id="nh"></span> 檔，空槽 <span id="slots"></span>）</h2>
-<table id="holds"><thead><tr><th>代號</th><th>名稱</th><th>進場日</th><th>成本</th><th>現價</th><th>損益%</th><th>距60日線%</th><th>停損價</th></tr></thead><tbody></tbody></table>
-<div class="note">賣出規則：收盤跌破 60 日線，或收盤跌破停損價（成本 -5%）→ <b>當日尾盤（收盤集合競價）全數賣出</b>。「距60日線%」越接近 0 越接近出場。<br>🆕 新倉＝近<b id="newdays">—</b>個交易日內進場（實單延後補買者，以實際買進日認定）；⚠ 即將停損＝現價距停損價5%以內，閃爍標記提醒優先注意。</div>
+<table id="holds"><thead><tr><th>代號</th><th>名稱</th><th>進場日</th><th>持有<br><span style="font-weight:400;opacity:.6">交易日</span></th><th>成本</th><th>現價</th><th>損益%</th><th>距60日線%</th><th>停損價</th></tr></thead><tbody></tbody></table>
+<div class="note">賣出規則：收盤跌破 60 日線，或收盤跌破停損價（成本 -5%）→ <b>當日尾盤（收盤集合競價）全數賣出</b>。「距60日線%」越接近 0 越接近出場。<br>🆕 新倉＝近<b id="newdays">—</b>個交易日內進場（實單延後補買者，以實際買進日認定）；「持有」＝進場日至今的交易日數（不含假日），當日尾盤進場為 0；⚠ 即將停損＝現價距停損價5%以內，閃爍標記提醒優先注意。</div>
 </section>
 
 <section>
 <h2>近三個月進出紀錄（已實現）</h2>
-<table id="recent"><thead><tr><th>代號</th><th>名稱</th><th>進場日</th><th>進場價</th><th>出場日</th><th>出場價</th><th>報酬%</th><th>出場原因</th></tr></thead><tbody></tbody></table>
-<div class="note">依模擬規則實際成交的紀錄（訊號日尾盤進、訊號日尾盤出、含費用）；仍持有中的部位見上方持股表。</div>
+<table id="recent"><thead><tr><th>代號</th><th>名稱</th><th>進場日</th><th>進場價</th><th>出場日</th><th>出場價</th><th>持有<br><span style="font-weight:400;opacity:.6">交易日</span></th><th>報酬%</th><th>出場原因</th></tr></thead><tbody></tbody></table>
+<div class="note">依模擬規則實際成交的紀錄（訊號日尾盤進、訊號日尾盤出、含費用）；仍持有中的部位見上方持股表。<b>依「出場日」篩選近三個月，進場日可能早得多</b>（跨年的部位會顯示年份）；「持有」為交易日數，不含假日。</div>
 </section>
 
 <section>
@@ -153,7 +153,13 @@ ctx.fillStyle="#58a6ff";ctx.fillText("● 策略指數 "+nav[n-1],pad[3]+10,pad[
 ctx.fillStyle="#8b949e";ctx.fillText("● 加權報酬指數(含權息) "+tw[n-1],pad[3]+10,pad[0]+52);
 
 // 異動
-const md=d=>d?`${+String(d).slice(4,6)}/${+String(d).slice(6)}`:"";
+const DYEAR=DATA.TODAY.slice(0,4);
+// 跨年持有的部位若只印 MM/DD，會看起來像進場日在出場日之後（8021 尖點 2025/07/29→2026/07/17）。
+// 年份等於資料年就印 MM/DD，不同年一律補上年份。
+const md=d=>{d=String(d||"");return d.length!==8?"":(d.slice(0,4)===DYEAR?`${d.slice(4,6)}/${d.slice(6)}`:`${d.slice(0,4)}/${d.slice(4,6)}/${d.slice(6)}`);};
+// 持有交易日數：用策略自己的交易日序列算，不用日曆天
+const NAVIDX=new Map(DATA.nav_dates.map((d,i)=>[d,i]));
+const tdays=(a,b)=>{const i=NAVIDX.get(String(a)),j=NAVIDX.get(String(b));return (i===undefined||j===undefined)?null:j-i;};
 // 補買註記：帳本是收盤判定，實單是 13:20 判斷；最後十分鐘才突破的標的實單隔日開盤才補到，
 // 成本與買進日都不同。不標的話讀者會以為帳本那個價格跟得到。
 const cuTxt=cu=>(cu&&cu.note)?`；${cu.note}`:"";
@@ -192,11 +198,11 @@ document.querySelector("#holds tbody").innerHTML=DATA.holds.map(h=>{
   // 實單買進日與帳本進場日不同（收盤才符合、隔日開盤補買）→ 註在進場日旁邊
   const dl=(h.cu&&h.cu.live_date&&h.cu.live_date!==h.entry_date)
     ?`<span style="color:var(--dim);font-size:.8rem">（實單${md(h.cu.live_date)}開盤）</span>`:"";
-  return `<tr><td>${h.code}</td><td>${h.name}${tags.join("")}</td><td>${h.entry_date.slice(4,6)}/${h.entry_date.slice(6)}${dl}</td><td>${cost}</td><td>${h.close}</td><td class="${cls(ret)}">${ret>0?"+":""}${ret}</td><td class="${cls(h.ma60_gap)}">${h.ma60_gap>0?"+":""}${h.ma60_gap}</td><td>${h.stop}</td></tr>`;
+  return `<tr><td>${h.code}</td><td>${h.name}${tags.join("")}</td><td>${md(h.entry_date)}${dl}</td><td>${tdays(h.entry_date,DATA.TODAY)??"—"}</td><td>${cost}</td><td>${h.close}</td><td class="${cls(ret)}">${ret>0?"+":""}${ret}</td><td class="${cls(h.ma60_gap)}">${h.ma60_gap>0?"+":""}${h.ma60_gap}</td><td>${h.stop}</td></tr>`;
 }).join("")||'<tr><td colspan="8" class="note">目前空手</td></tr>';
 
 // 近三個月進出紀錄
-document.querySelector("#recent tbody").innerHTML=(DATA.recent||[]).map(t=>`<tr><td>${t.code}</td><td>${t.name}</td><td>${t.entry_date.slice(4,6)}/${t.entry_date.slice(6)}</td><td>${t.entry??"—"}</td><td>${t.exit_date.slice(4,6)}/${t.exit_date.slice(6)}</td><td>${t.exit??"—"}</td><td class="${cls(t.ret)}">${t.ret>0?"+":""}${t.ret}</td><td>${t.reason}</td></tr>`).join("")||'<tr><td colspan="8" class="note">近三個月無已實現交易</td></tr>';
+document.querySelector("#recent tbody").innerHTML=(DATA.recent||[]).map(t=>`<tr><td>${t.code}</td><td>${t.name}</td><td>${md(t.entry_date)}</td><td>${t.entry??"—"}</td><td>${md(t.exit_date)}</td><td>${t.exit??"—"}</td><td>${tdays(t.entry_date,t.exit_date)??"—"}</td><td class="${cls(t.ret)}">${t.ret>0?"+":""}${t.ret}</td><td>${t.reason}</td></tr>`).join("")||'<tr><td colspan="9" class="note">近三個月無已實現交易</td></tr>';
 
 // 月報酬
 $("mgrid").innerHTML=DATA.monthly.map(m=>{const r=m.r;const bg=r>0?`rgba(248,81,73,${Math.min(Math.abs(r)/15,.8)})`:`rgba(63,185,80,${Math.min(Math.abs(r)/15,.8)})`;return `<div class="mcell" style="background:${bg}">${m.ym.slice(2)}<br><b>${r>0?"+":""}${r}%</b></div>`;}).join("");
