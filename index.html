@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="googlebot" content="noindex,nofollow">
-<title>W2 實單追蹤</title>
+<title>W2 突破策略觀察站</title>
 <style>
 :root{--bg:#0d1117;--card:#161b22;--line:#21262d;--tx:#e6edf3;--dim:#8b949e;
 --up:#f85149;--dn:#3fb950;--acc:#58a6ff;--gold:#d29922}
@@ -16,7 +16,11 @@ h1{font-size:1.5rem;margin-bottom:2px}
 .badge{display:inline-block;padding:3px 14px;border-radius:20px;font-weight:700;font-size:.95rem}
 .on{background:#12331c;color:var(--dn);border:1px solid var(--dn)}
 .off{background:#3d1418;color:var(--up);border:1px solid var(--up)}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+/* 每排 6 張卡：auto-fit 在某些寬度剛好塞 5 張，會掉出一張孤立卡片。
+   固定 2／3／6 欄（6 可被三者整除），任何寬度都排得整齊。 */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+@media(min-width:880px){.cards{grid-template-columns:repeat(6,1fr)}}
+@media(max-width:460px){.cards{grid-template-columns:repeat(2,1fr)}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
 .card .k{color:var(--dim);font-size:.78rem}
 .card .v{font-size:1.35rem;font-weight:700;margin-top:2px}
@@ -57,11 +61,11 @@ details section+section{border-top:1px solid var(--line);padding-top:16px}
 </head>
 <body>
 
-<h1>W2 實單追蹤</h1>
-<div class="sub">
-實際帳戶部位與績效｜封閉池 <b id="lstart"></b> 起跑，第 <b id="ldays"></b> 個交易日｜資料日 <b id="today"></b>｜規則版本 <b id="rulever"></b>｜大盤 <span id="lamp"></span>
-<br>本頁只顯示百分比，不顯示金額與股數。
-</div>
+<h1>W2 突破策略觀察站</h1>
+<div class="sub">資料日 <b id="today"></b>｜規則版本 <b id="rulever"></b>｜大盤 <span id="lamp"></span></div>
+
+<div class="info">以下全部是<b>模型帳本</b>：假設 2021/7/1 起以 100 為基準、完全照規則執行的模擬結果。它與下方實單是<b>兩個獨立的投資組合</b>——起跑日不同、艙位不同、成交價不同，數字不會一致，也不需要一致。</div>
+<div id="histKpi" class="cards"></div>
 
 <div id="liveKpi" class="cards"></div>
 <div id="liveBad" class="warn" style="display:none"></div>
@@ -104,10 +108,7 @@ details section+section{border-top:1px solid var(--line);padding-top:16px}
 
 <details>
 <summary>策略歷史（模型帳本，2021/7/1 起）<span class="hint">　規則在歷史資料上的模擬，不是實單</span></summary>
-<section>
-<div class="info">以下全部是<b>模型帳本</b>：假設 2021/7/1 起以 100 為基準、完全照規則執行的模擬結果。它與上方實單是<b>兩個獨立的投資組合</b>——起跑日不同、艙位不同、成交價不同，數字不會一致，也不需要一致。</div>
-<div id="histKpi" class="cards"></div>
-</section>
+
 
 <section>
 <h2>今日異動（模型帳本）</h2>
@@ -218,11 +219,9 @@ if(!LA){
   const r=+(nav-100).toFixed(2), b=bench===null?null:+(bench-100).toFixed(2);
   const inv=LA.invested[LA.invested.length-1];
   const te=LA.sim_nav?+(nav-LA.sim_nav).toFixed(2):null;
-  $("lstart").textContent=md(LA.start);
-  $("ldays").textContent=LA.dates.length;
   $("wdays").textContent=LA.dates.length;
   $("liveKpi").innerHTML=[
-    ["實單報酬",sg(r)+"%",cls(r),"起跑日至今，含手續費與證交稅"],
+    ["實單報酬",sg(r)+"%",cls(r),`${md(LA.start)} 起跑，第 ${LA.dates.length} 個交易日（含費用）`],
     ["同期大盤",b===null?"—":sg(b)+"%",b===null?"":cls(b),"加權報酬指數（含權息）"],
     ["超額",b===null?"—":sg(+(r-b).toFixed(2))+"%",b===null?"":cls(r-b),"實單 − 大盤"],
     ["持股",LA.holds.length+" / 15","","空槽 "+num(LA.slots)],
