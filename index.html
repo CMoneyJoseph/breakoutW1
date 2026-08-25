@@ -177,9 +177,11 @@ $("today").textContent=DATA.TODAY.replace(/(\d{4})(\d{2})(\d{2})/,"$1/$2/$3");
 $("rulever").textContent=(DATA.rules&&DATA.rules.version)||"—";
 // 只顯示燈號符號，不寫文字（濾網日後可能重新啟用，語意不必跟著改）。
 // 說明放 title，滑過去才看得到；紅燈閃爍提醒，綠燈恆亮不干擾。
+// 只寫「市場偏強／偏弱」這種狀態描述，不寫「僅顯示、不影響進出」——
+// 濾網日後可能重新啟用，狀態描述兩種情況都成立，規則敘述不會跟著過時。
 $("lamp").innerHTML=DATA.riskon
-  ?'<span class="lamp lamp-on" title="大盤週MACD 偏強"></span>'
-  :'<span class="lamp lamp-off" title="大盤週MACD 偏弱"></span>';
+  ?'<span class="lamp lamp-on" title="大盤週MACD柱 > 0"></span> <b style="color:var(--dn)">市場偏強</b>'
+  :'<span class="lamp lamp-off" title="大盤週MACD柱 <= 0"></span> <b style="color:var(--up)">市場偏弱</b>';
 
 // 通用折線圖：實單用線性刻度、五年用對數刻度
 function draw(id,xs,series,opts){
